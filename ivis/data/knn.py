@@ -99,17 +99,19 @@ class KNN_Worker(Process):
         self.data_indices = data_indices
         self.results_queue = results_queue
 
-
     def run(self):
-        annoy_index = AnnoyIndex(self.n_dims)
-        annoy_index.load(self.index_filepath)
 
         try:
+            annoy_index = AnnoyIndex(self.n_dims)
+            annoy_index.load(self.index_filepath)
+
             for i in range(self.data_indices[0], self.data_indices[1]):
                 neighbour_indexes = annoy_index.get_nns_by_item(
                     i, self.k, search_k=self.search_k, include_distances=False)
                 neighbour_indexes = np.array(neighbour_indexes,
                                              dtype=np.uint32)
+                print(neighbour_indexes)
+
                 self.results_queue.put(
                     IndexNeighbours(row_index=i,
                                     neighbour_list=neighbour_indexes))
