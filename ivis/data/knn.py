@@ -89,18 +89,23 @@ class KNN_Worker(Process):
     """
     def __init__(self, index_filepath, k, search_k, n_dims,
                  data_indices, results_queue):
-        self.index = AnnoyIndex(n_dims)
-        self.index.load(index_filepath)
+        #self.index = AnnoyIndex(n_dims)
+        #self.index.load(index_filepath)
+        self.index_filepath = index_filepath
         self.k = k
         self.search_k = search_k
+        self.n_dims = n_dims
         self.data_indices = data_indices
         self.results_queue = results_queue
         super(KNN_Worker, self).__init__()
 
     def run(self):
+        annoy_index = AnnoyIndex(self.n_dims)
+        annoy_index.load(self.filepath)
+
         try:
             for i in range(self.data_indices[0], self.data_indices[1]):
-                neighbour_indexes = self.index.get_nns_by_item(
+                neighbour_indexes = annoy_index.get_nns_by_item(
                     i, self.k, search_k=self.search_k, include_distances=False)
                 neighbour_indexes = np.array(neighbour_indexes,
                                              dtype=np.uint32)
