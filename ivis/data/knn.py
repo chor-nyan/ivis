@@ -101,7 +101,7 @@ class KNN_Worker(Process):
 
     def run(self):
         annoy_index = AnnoyIndex(self.n_dims)
-        annoy_index.load(self.filepath)
+        annoy_index.load(self.index_filepath)
 
         try:
             for i in range(self.data_indices[0], self.data_indices[1]):
