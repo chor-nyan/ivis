@@ -91,13 +91,14 @@ class KNN_Worker(Process):
                  data_indices, results_queue):
         #self.index = AnnoyIndex(n_dims)
         #self.index.load(index_filepath)
+        super(KNN_Worker, self).__init__()
         self.index_filepath = index_filepath
         self.k = k
         self.search_k = search_k
         self.n_dims = n_dims
         self.data_indices = data_indices
         self.results_queue = results_queue
-        super(KNN_Worker, self).__init__()
+
 
     def run(self):
         annoy_index = AnnoyIndex(self.n_dims)
