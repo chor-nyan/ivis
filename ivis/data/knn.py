@@ -68,6 +68,9 @@ def extract_knn(X, index_filepath, k=150, search_k=-1, verbose=1):
         while not results_queue.empty():
             neighbour_list.append(results_queue.get())
 
+    for process in process_pool:
+        process.join()
+
     neighbour_list = sorted(neighbour_list, key=attrgetter('row_index'))
     neighbour_list = list(map(attrgetter('neighbour_list'), neighbour_list))
 
