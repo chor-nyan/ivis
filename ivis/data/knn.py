@@ -37,7 +37,6 @@ def extract_knn(X, index_filepath, k=150, search_k=-1, verbose=1):
         an Annoy Index in parallel """
 
     n_dims = X.shape[1]
-
     chunk_size = X.shape[0] // cpu_count()
     remainder = (X.shape[0] % cpu_count()) > 0
     process_pool = []
@@ -69,9 +68,6 @@ def extract_knn(X, index_filepath, k=150, search_k=-1, verbose=1):
 
         while not results_queue.empty():
             neighbour_list.append(results_queue.get())
-
-    for process in process_pool:
-        process.join()
 
     neighbour_list = sorted(neighbour_list, key=attrgetter('row_index'))
     neighbour_list = list(map(attrgetter('neighbour_list'), neighbour_list))
