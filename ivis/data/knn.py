@@ -29,6 +29,9 @@ def build_annoy_index(X, path, ntrees=50, verbose=1):
     return index
 
 
+results_queue = Queue()
+
+
 def extract_knn(X, index_filepath, k=150, search_k=-1, verbose=1):
     """ Starts multiple processes to retrieve nearest neighbours using
         an Annoy Index in parallel """
@@ -38,7 +41,6 @@ def extract_knn(X, index_filepath, k=150, search_k=-1, verbose=1):
     chunk_size = X.shape[0] // cpu_count()
     remainder = (X.shape[0] % cpu_count()) > 0
     process_pool = []
-    results_queue = Queue()
 
     # Split up the indices and assign processes for each chunk
     i = 0
@@ -104,11 +106,11 @@ class KNN_Worker(Process):
     def run(self):
 
         try:
-            self.index = AnnoyIndex(self.n_dims)
-            self.index.load(self.index_filepath)
+            index = AnnoyIndex(self.n_dims)
+            index.load(self.index_filepath)
 
             for i in range(self.data_indices[0], self.data_indices[1]):
-                neighbour_indexes = self.index.get_nns_by_item(
+                neighbour_indexes = index.get_nns_by_item(
                     i, self.k, search_k=self.search_k, include_distances=False)
                 neighbour_indexes = np.array(neighbour_indexes,
                                              dtype=np.uint32)
