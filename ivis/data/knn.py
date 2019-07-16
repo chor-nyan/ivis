@@ -56,23 +56,24 @@ def extract_knn(X, index_filepath, k=150, search_k=-1, verbose=1):
         process.start()
 
     # Read from queue constantly to prevent it from becoming full
-    with tqdm(total=X.shape[0], disable=verbose < 1) as pbar:
-        neighbour_list = []
-        neighbour_list_length = len(neighbour_list)
-        while any(process.is_alive() for process in process_pool):
-            while not results_queue.empty():
-                neighbour_list.append(results_queue.get())
-            progress = len(neighbour_list) - neighbour_list_length
-            pbar.update(progress)
-            neighbour_list_length = len(neighbour_list)
-            time.sleep(0.1)
+    #with tqdm(total=X.shape[0], disable=verbose < 1) as pbar:
+    #    neighbour_list = []
+    #    neighbour_list_length = len(neighbour_list)
+    #    while any(process.is_alive() for process in process_pool):
+    #        while not results_queue.empty():
+    #            neighbour_list.append(results_queue.get())
+    #        progress = len(neighbour_list) - neighbour_list_length
+    #        pbar.update(progress)
+    #        neighbour_list_length = len(neighbour_list)
+    #        time.sleep(0.1)
 
-        while not results_queue.empty():
-            neighbour_list.append(results_queue.get())
+    #    while not results_queue.empty():
+    #        neighbour_list.append(results_queue.get())
 
     for process in process_pool:
         process.join()
 
+    neighbour_list = [results_queue.get() for p in process_pool]
     neighbour_list = sorted(neighbour_list, key=attrgetter('row_index'))
     neighbour_list = list(map(attrgetter('neighbour_list'), neighbour_list))
 
