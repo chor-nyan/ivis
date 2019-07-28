@@ -79,7 +79,7 @@ class Ivis(BaseEstimator):
     """
 
     def __init__(self, embedding_dims=2, k=150, distance='quad', batch_size=128,
-                 epochs=1000, n_epochs_without_progress=50,
+                 epochs=500, n_epochs_without_progress=50,
                  margin1=1, margin2=0.5, ntrees=50, search_k=-1,
                  precompute=True, model='default',
                  classification_weight=0.5, annoy_index_path=None,
@@ -185,7 +185,7 @@ class Ivis(BaseEstimator):
                         'stacked_triplets': 1 - self.classification_weight,
                         'classification_out': self.classification_weight})
 
-        self.encoder = self.model_.layers[3]
+        self.encoder = self.model_.layers[4]
 
         if self.verbose > 0:
             print('Training neural network')
