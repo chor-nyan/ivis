@@ -5,25 +5,26 @@
 from keras import backend as K
 import tensorflow as tf
 
-def triplet_loss(distance='pn', margin=1):
+def triplet_loss(distance='quad', margin1=1, margin2=0.5):
 
-    losses = get_loss_functions(margin=margin)
+    losses = get_loss_functions(margin1=margin1, margin2=margin2)
 
     loss_function = losses[distance]
     loss_function.__name__ = distance
 
     return loss_function
 
-def get_loss_functions(margin=1):
+def get_loss_functions(margin1=1, margin2=0.5):
     losses = {
-        'pn' : pn_loss(margin=margin),
-        'euclidean' : euclidean_loss(margin=margin),
+        'pn' : pn_loss(margin=margin1),
+        'euclidean' : euclidean_loss(margin=margin1),
         'softmax_ratio' : softmax_ratio,
         'softmax_ratio_pn' : softmax_ratio_pn,
-        'manhattan': manhattan_loss(margin=margin),
-        'manhattan_pn': manhattan_pn_loss(margin=margin),
-        'chebyshev': chebyshev_loss(margin=margin),
-        'chebyshev_pn': chebyshev_pn_loss(margin=margin)
+        'manhattan': manhattan_loss(margin=margin1),
+        'manhattan_pn': manhattan_pn_loss(margin=margin1),
+        'chebyshev': chebyshev_loss(margin=margin1),
+        'chebyshev_pn': chebyshev_pn_loss(margin=margin1),
+        'quad': quad_loss(margin1=margin1, margin2=margin2)
     }
     return losses
 
@@ -35,6 +36,22 @@ def _manhattan_distance(x, y):
 
 def _chebyshev_distance(x, y):
     return K.max(K.abs(x - y), axis=1, keepdims=True)
+
+def quad_loss(margin1=1, margin2=0.5):
+    def _quad_loss(y_true, y_pred):
+        anchor, positive, negative, neg_negative = tf.unstack(y_pred)
+
+        anchor_positive_distance = _euclidean_distance(anchor, positive)
+        anchor_negative_distance = _euclidean_distance(anchor, negative)
+        positive_negative_distance = _euclidean_distance(positive, negative)
+        negative_neg_negative_distance = _euclidean_distance(negative, neg_negative)
+
+        minimum_distance = K.min(K.concatenate([anchor_negative_distance, positive_negative_distance]), axis=1, keepdims=True)
+
+        return K.mean(K.maximum(anchor_positive_distance - minimum_distance + margin1, 0)) \
+                + K.mean(K.maximum(anchor_positive_distance - negative_neg_negative_distance + margin2, 0))
+
+    return _quad_loss
 
 def pn_loss(margin=1):
     def _pn_loss(y_true, y_pred):    

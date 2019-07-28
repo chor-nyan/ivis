@@ -33,6 +33,35 @@ def triplet_network(base_network, embedding_dims=2, embedding_l2=0.0):
 
     return model, processed_a, processed_p, processed_n
 
+def quadruplet_network(base_network, embedding_dims=2, embedding_l2=0.0):
+    def output_shape(shapes):
+        shape1, shape2, shape3, shape4 = shapes
+        return (4, shape1[0],)
+
+    input_a = Input(shape=base_network.input_shape[1:])
+    input_p = Input(shape=base_network.input_shape[1:])
+    input_n = Input(shape=base_network.input_shape[1:])
+    input_nn = Input(shape=base_network.input_shape[1:])
+
+    embeddings = Dense(embedding_dims,
+                       kernel_regularizer=l2(embedding_l2))(base_network.output)
+    network = Model(base_network.input, embeddings)
+
+    processed_a = network(input_a)
+    processed_p = network(input_p)
+    processed_n = network(input_n)
+    processed_nn = network(input_nn)
+
+    quadruplet = Lambda(K.stack,
+                     output_shape=output_shape,
+                     name='stacked_quadruplets')([processed_a,
+                                               processed_p,
+                                               processed_n,
+                                               processed_nn],)
+    model = Model([input_a, input_p, input_n, input_nn], quadruplet)
+
+    return model, processed_a, processed_p, processed_n, processed_nn
+
 
 def base_network(model_name, input_shape):
     '''Return the defined base_network defined by the model_name string.

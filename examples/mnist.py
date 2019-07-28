@@ -11,14 +11,16 @@ import os
 import matplotlib.pyplot as plt
 
 from sklearn.datasets import fetch_openml
-from ivis import Ivis
+from ivis.ivis import Ivis
 
 mnist = fetch_openml('mnist_784', version=1)
+ivis = Ivis(model='maaten', verbose=1)
+n = 10000
+data = mnist.data[:n, :]
+embeddings = ivis.fit_transform(data)
 
-ivis = Ivis(model='maaten', verbose=0)
-embeddings = ivis.fit_transform(mnist.data)
 
-color = mnist.target.astype(int)
+color = mnist.target[:n].astype(int)
 
 plt.figure(figsize=(8, 8), dpi=150)
 plt.scatter(x=embeddings[:, 0],

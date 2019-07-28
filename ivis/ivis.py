@@ -1,6 +1,6 @@
 """ scikit-learn wrapper class for the Ivis algorithm. """
 from .data.triplet_generators import generator_from_index
-from .nn.network import triplet_network, base_network
+from .nn.network import triplet_network, base_network, quadruplet_network
 from .nn.callbacks import ModelCheckpoint
 from .nn.losses import triplet_loss
 from .data.knn import build_annoy_index
@@ -78,12 +78,12 @@ class Ivis(BaseEstimator):
 
     """
 
-    def __init__(self, embedding_dims=2, k=150, distance='pn', batch_size=128,
+    def __init__(self, embedding_dims=2, k=150, distance='quad', batch_size=128,
                  epochs=1000, n_epochs_without_progress=50,
-                 margin=1, ntrees=50, search_k=-1,
+                 margin1=1, margin2=0.5, ntrees=50, search_k=-1,
                  precompute=True, model='default',
                  classification_weight=0.5, annoy_index_path=None,
-                 callbacks=[], verbose=1):
+                 callbacks=[], verbose=1, type='quad'):
 
         self.embedding_dims = embedding_dims
         self.k = k
@@ -91,7 +91,8 @@ class Ivis(BaseEstimator):
         self.batch_size = batch_size
         self.epochs = epochs
         self.n_epochs_without_progress = n_epochs_without_progress
-        self.margin = margin
+        self.margin1 = margin1
+        self.margin2 = margin2
         self.ntrees = ntrees
         self.search_k = search_k
         self.precompute = precompute
@@ -106,6 +107,7 @@ class Ivis(BaseEstimator):
             if isinstance(callback, ModelCheckpoint):
                 callback = callback.register_ivis_model(self)
         self.verbose = verbose
+        self.type = type
 
     def __getstate__(self):
         """ Return object serializable variable dict """
@@ -136,20 +138,31 @@ class Ivis(BaseEstimator):
         loss_monitor = 'loss'
         try:
             triplet_loss_func = triplet_loss(distance=self.distance,
-                                             margin=self.margin)
+                                             margin1=self.margin1, margin2=self.margin2)
         except KeyError:
             raise ValueError('Loss function `{}` not implemented.'.format(self.distance))
 
         if self.model_ is None:
             if type(self.model_def) is str:
                 input_size = (X.shape[-1],)
-                self.model_, anchor_embedding, _, _ = \
+                if type == 'tri':
+                    self.model_, anchor_embedding, _, _ = \
                     triplet_network(base_network(self.model_def, input_size),
                                     embedding_dims=self.embedding_dims)
+                else:
+                    self.model_, anchor_embedding, _, _, _ = \
+                    quadruplet_network(base_network(self.model_def, input_size),
+                                        embedding_dims=self.embedding_dims)
             else:
-                self.model_, anchor_embedding, _, _ = \
+                if type == 'tri':
+                    self.model_, anchor_embedding, _, _ = \
                     triplet_network(self.model_def,
                                     embedding_dims=self.embedding_dims)
+
+                else:
+                    self.model_, anchor_embedding, _, _, _ = \
+                    quadruplet_network(self.model_def,
+                                        embedding_dims=self.embedding_dims)
 
             if Y is None:
                 self.model_.compile(optimizer='adam', loss=triplet_loss_func)
@@ -283,7 +296,7 @@ class Ivis(BaseEstimator):
                                                   'ivis_params.json'), 'r'))
         self.__dict__ = ivis_config
 
-        loss_function = triplet_loss(self.distance, self.margin)
+        loss_function = triplet_loss(self.distance, self.margin1, self.margin2)
         self.model_ = load_model(os.path.join(folder_path, 'ivis_model.h5'),
                                  custom_objects={'tf': tf,
                                                  loss_function.__name__: loss_function })
