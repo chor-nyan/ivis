@@ -17,7 +17,7 @@ from ivis.ivis import Ivis
 
 mnist = fetch_openml('mnist_784', version=1)
 ivis = Ivis(model='maaten', verbose=1)
-n = 10000
+n = 70000
 data = mnist.data[:n, :]
 embeddings = ivis.fit_transform(data)
 
