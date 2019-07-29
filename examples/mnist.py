@@ -26,7 +26,7 @@ color = mnist.target[:n].astype(int)
 
 plt.figure(figsize=(8, 8), dpi=150)
 plt.scatter(x=embeddings[:, 0],
-            y=embeddings[:, 1], c=color, cmap="Spectral", s=1)
+            y=embeddings[:, 1], c=color, cmap="Spectral", s=0.1)
 plt.xlabel('ivis 1')
 plt.ylabel('ivis 2')
 plt.show()

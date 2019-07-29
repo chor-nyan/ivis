@@ -79,7 +79,7 @@ class Ivis(BaseEstimator):
     """
 
     def __init__(self, embedding_dims=2, k=150, distance='quad', batch_size=128,
-                 epochs=1000, n_epochs_without_progress=50,
+                 epochs=1000, n_epochs_without_progress=100,
                  margin1=1, margin2=0.5, ntrees=50, search_k=-1,
                  precompute=True, model='default',
                  classification_weight=0.5, annoy_index_path=None,
