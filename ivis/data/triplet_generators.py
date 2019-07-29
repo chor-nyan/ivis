@@ -18,6 +18,7 @@ from .knn import extract_knn
 from annoy import AnnoyIndex
 from keras.utils import Sequence
 from scipy.sparse import issparse
+from numba import jit
 
 
 def generator_from_index(X, Y, index_path, k, batch_size, search_k=-1,
@@ -38,6 +39,23 @@ def generator_from_index(X, Y, index_path, k, batch_size, search_k=-1,
 
             neighbour_matrix = extract_knn(X, index_path, k=k,
                                            search_k=search_k, verbose=verbose)
+            # neighbour_matrix = np.asarray(neighbour_matrix, dtype=np.int32)
+            print('neighbour_matrix: ', neighbour_matrix.dtype)
+
+            if verbose > 0:
+                print('Making KNN mutual')
+            @jit
+            def make_mutual(neighbour_matrix):
+                for i in range(neighbour_matrix.shape[0]):
+                    for j in range(neighbour_matrix.shape[1]):
+                        if i not in neighbour_matrix[neighbour_matrix[i, j]]:
+                            neighbour_matrix[i, j] = neighbour_matrix.shape[0] + 1
+                return neighbour_matrix
+
+            neighbour_matrix = make_mutual(neighbour_matrix)
+
+            print('Mutual Knn: ', neighbour_matrix[0])
+
             if type == 'quad':
                 return KnnQuadrupletGenerator(X, neighbour_matrix, batch_size=batch_size)
             if type == 'tri':
@@ -192,7 +210,7 @@ class KnnQuadrupletGenerator(Sequence):
         neighbour_list = neighbour_matrix[row_index]
 
         # Take a random neighbour as positive
-        neighbour_ind = np.random.choice(neighbour_list)
+        neighbour_ind = np.random.choice(list(set(neighbour_list) & set(range(self.X.shape[0]))))
 
         # Take a random non-neighbour as negative
         # Pick a random index until one fits constraint. An optimization.
