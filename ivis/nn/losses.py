@@ -5,7 +5,7 @@
 from keras import backend as K
 import tensorflow as tf
 
-def triplet_loss(distance='quad', margin1=1, margin2=0.5):
+def triplet_loss(distance='pn', margin1=1, margin2=0.5):
 
     losses = get_loss_functions(margin1=margin1, margin2=margin2)
 

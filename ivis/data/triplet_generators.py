@@ -19,10 +19,30 @@ from annoy import AnnoyIndex
 from keras.utils import Sequence
 from scipy.sparse import issparse
 from numba import jit
+from skhubness.neighbors import kneighbors_graph
+# from scipy.spatial.distance import cdist, pdist, squareform
+# import hub_toolbox
+# from sklearn.datasets import fetch_openml
+# from hub_toolbox.distances import euclidean_distance
 
+
+# def euclidean_distance(X):
+#     """Calculate the euclidean distances between all pairs of vectors in `X`.
+#
+#     Consider using sklearn.metric.pairwise.euclidean_distances for faster,
+#     but less accurate distances (not necessarily symmetric, too)."""
+#     return squareform(pdist(X, 'euclidean'))
+
+@jit
+def make_mutual(neighbour_matrix):
+    for i in range(neighbour_matrix.shape[0]):
+        for j in range(neighbour_matrix.shape[1]):
+            if i not in neighbour_matrix[neighbour_matrix[i, j]]:
+                neighbour_matrix[i, j] = neighbour_matrix.shape[0] + 1
+    return neighbour_matrix
 
 def generator_from_index(X, Y, index_path, k, batch_size, search_k=-1,
-                         precompute=True, verbose=1, type='quad'):
+                         precompute=True, verbose=1, type='tri', knn='MP'):
     if k >= X.shape[0] - 1:
         raise Exception('''k value greater than or equal to (num_rows - 1)
                         (k={}, rows={}). Lower k to a smaller
@@ -37,24 +57,32 @@ def generator_from_index(X, Y, index_path, k, batch_size, search_k=-1,
             if verbose > 0:
                 print('Extracting KNN from index')
 
-            neighbour_matrix = extract_knn(X, index_path, k=k,
+            if knn == 'MP':
+                if verbose > 0:
+                    print('Making MP-based KNN')
+
+                # D = euclidean_distance(X)
+                # D_mp = hub_toolbox.global_scaling.mutual_proximity_empiric(
+                #     D=D, metric='distance')
+                neigbour_graph = kneighbors_graph(X, n_neighbors=k, hubness='mutual_proximity', hubness_params={'method': 'normal'})
+                # neigbor_graph = kneighbors_graph(X, n_neighbors=k, hubness=None)
+                neighbour_matrix = neigbour_graph.indices.reshape((X.shape[0], k))
+
+            else:
+                neighbour_matrix = extract_knn(X, index_path, k=k,
                                            search_k=search_k, verbose=verbose)
             # neighbour_matrix = np.asarray(neighbour_matrix, dtype=np.int32)
-            print('neighbour_matrix: ', neighbour_matrix.dtype)
+            print('neighbour_matrix: ', neighbour_matrix.shape)
 
-            if verbose > 0:
-                print('Making KNN mutual')
-            @jit
-            def make_mutual(neighbour_matrix):
-                for i in range(neighbour_matrix.shape[0]):
-                    for j in range(neighbour_matrix.shape[1]):
-                        if i not in neighbour_matrix[neighbour_matrix[i, j]]:
-                            neighbour_matrix[i, j] = neighbour_matrix.shape[0] + 1
-                return neighbour_matrix
+            if knn == 'Mutual':
+                if verbose > 0:
+                    print('Making KNN mutual')
 
-            neighbour_matrix = make_mutual(neighbour_matrix)
+                neighbour_matrix = make_mutual(neighbour_matrix)
 
-            print('Mutual Knn: ', neighbour_matrix[0])
+
+
+            # print('Mutual Knn: ', neighbour_matrix[0])
 
             if type == 'quad':
                 return KnnQuadrupletGenerator(X, neighbour_matrix, batch_size=batch_size)

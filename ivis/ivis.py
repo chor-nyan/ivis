@@ -78,17 +78,12 @@ class Ivis(BaseEstimator):
 
     """
 
-<<<<<<< HEAD
-    def __init__(self, embedding_dims=2, k=700, distance='quad', batch_size=128,
-                 epochs=500, n_epochs_without_progress=50,
-=======
-    def __init__(self, embedding_dims=2, k=150, distance='quad', batch_size=128,
-                 epochs=1000, n_epochs_without_progress=50,
->>>>>>> 1c2d987cc9d9be3477aec09b7aa3151a714ffdde
+    def __init__(self, embedding_dims=2, k=150, distance='pn', batch_size=256,
+         epochs=200, n_epochs_without_progress=50,
                  margin1=1, margin2=0.5, ntrees=50, search_k=-1,
                  precompute=True, model='default',
                  classification_weight=0.5, annoy_index_path=None,
-                 callbacks=[], verbose=1, type='quad'):
+                 callbacks=[], verbose=1, type='tri', knn='MP'):
 
         self.embedding_dims = embedding_dims
         self.k = k
@@ -113,6 +108,7 @@ class Ivis(BaseEstimator):
                 callback = callback.register_ivis_model(self)
         self.verbose = verbose
         self.type = type
+        self.knn = knn
 
     def __getstate__(self):
         """ Return object serializable variable dict """
@@ -138,7 +134,9 @@ class Ivis(BaseEstimator):
                                        batch_size=self.batch_size,
                                        search_k=self.search_k,
                                        precompute=self.precompute,
-                                       verbose=self.verbose)
+                                       verbose=self.verbose,
+                                       type=self.type,
+                                       knn=self.knn)
 
         loss_monitor = 'loss'
         try:
@@ -150,7 +148,7 @@ class Ivis(BaseEstimator):
         if self.model_ is None:
             if type(self.model_def) is str:
                 input_size = (X.shape[-1],)
-                if type == 'tri':
+                if self.type == 'tri':
                     self.model_, anchor_embedding, _, _ = \
                     triplet_network(base_network(self.model_def, input_size),
                                     embedding_dims=self.embedding_dims)
@@ -159,7 +157,7 @@ class Ivis(BaseEstimator):
                     quadruplet_network(base_network(self.model_def, input_size),
                                         embedding_dims=self.embedding_dims)
             else:
-                if type == 'tri':
+                if self.type == 'tri':
                     self.model_, anchor_embedding, _, _ = \
                     triplet_network(self.model_def,
                                     embedding_dims=self.embedding_dims)
@@ -189,8 +187,10 @@ class Ivis(BaseEstimator):
                     loss_weights={
                         'stacked_triplets': 1 - self.classification_weight,
                         'classification_out': self.classification_weight})
-
-        self.encoder = self.model_.layers[4]
+        if self.type == 'quad':
+            self.encoder = self.model_.layers[4]
+        else:
+            self.encoder = self.model_.layers[3]
 
         if self.verbose > 0:
             print('Training neural network')
